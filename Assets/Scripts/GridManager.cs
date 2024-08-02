@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GridManager : MonoBehaviour
@@ -6,10 +7,13 @@ public class GridManager : MonoBehaviour
     public float size = 1f; // Size of the plane
     public int gridSize = 10;
     public GameObject tilePrefab;
-    // public Color tileColor = Color.white; // Default color
+    public GameObject highlightPrefab;
+    public Color defaultColor;
+    public Color highlightColor;    // Store the generated tiles in a dictionary for quick access
+    private Dictionary<Vector2Int, GameObject> tiles = new Dictionary<Vector2Int, GameObject>();
 
-    // private MeshRenderer _meshRenderer;
-    // private MeshFilter _meshFilter;
+    // Reference to the currently highlighted tile
+    private GameObject currentlyHighlightedTile;
 
     void Start()
     {
@@ -18,14 +22,7 @@ public class GridManager : MonoBehaviour
 
     void GenerateGrid()
     {
-        // _meshRenderer = gameObject.AddComponent<MeshRenderer>();
-        // Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        // // Set the color of the material
-        // material.SetColor("_BaseColor", tileColor);
-        // _meshRenderer.material = material;
-        // _meshFilter = gameObject.AddComponent<MeshFilter>();
-
-        for (int z = 0, i = 0; z < gridSize; z++)
+        for (int z = 0; z < gridSize; z++)
         {
             for (int x = 0; x < gridSize; x++)
             {
@@ -34,55 +31,53 @@ public class GridManager : MonoBehaviour
                 position.y = 0f;
                 position.z = z + 0.5f;
 
-                GameObject cell = Instantiate<GameObject>(tilePrefab);
+                GameObject cell = Instantiate(tilePrefab);
                 cell.transform.SetParent(transform, false);
                 cell.transform.localPosition = position;
+                // Name the tile using its grid coordinates
+                cell.name = $"Tile_{x}_{z}";
+
+                // Store the tile in the dictionary with grid coordinates as the key
+                tiles[new Vector2Int(x, z)] = cell;
             }
         }
     }
 
-    //     void RenderGridTile()
-    //     {
-    //         Vector3[] verts = new Vector3[4]
-    //         {
-    //             new Vector3(0, 0, 0), // Bottom left
-    //             new Vector3(size, 0, 0), // Bottom right
-    //             new Vector3(0, 0, size), // Top left
-    //             new Vector3(size, 0, size) // Top right
-    //         };
+    // Method to highlight a tile at the given grid coordinates
+    public void HighlightTile(Vector2Int tileCoords)
+    {
+        // Check if the tile exists in the dictionary
+        if (tiles.TryGetValue(tileCoords, out GameObject tile))
+        {
+            // Unhighlight the previously highlighted tile if necessary
+            if (currentlyHighlightedTile != null && currentlyHighlightedTile != tile)
+            {
+                UnhighlightTile();
+            }
 
-    //         int[] tris = new int[6]
-    // {
-    //             // lower left triangle
-    //             0, 2, 1,
-    //             // upper right triangle
-    //             2, 3, 1
-    //         };
+            // move highlight ontop of tile
+            highlightPrefab.SetActive(true);
+            highlightPrefab.transform.position = new Vector3(tileCoords.x + 0.5f, 0.001f, tileCoords.y + 0.5f);
 
-    //         Vector3[] normals = new Vector3[4]
-    //         {
-    //             Vector3.up,
-    //             Vector3.up,
-    //             Vector3.up,
-    //             Vector3.up
-    //         };
+            currentlyHighlightedTile = tile; // Update the currently highlighted tile reference
+        }
+    }
+    // Method to unhighlight the currently highlighted tile
+    public void UnhighlightTile()
+    {
+        if (currentlyHighlightedTile != null)
+        {
+            highlightPrefab.SetActive(false);
 
-    //         Vector2[] uv = new Vector2[4]
-    //         {
-    //             new Vector2(0, 0),
-    //             new Vector2(1, 0),
-    //             new Vector2(0, 1),
-    //             new Vector2(1, 1)
-    //         };
+            currentlyHighlightedTile = null; // Clear the reference
+        }
+    }
+    // Method to convert world coordinates to grid coordinates
+    public Vector2Int GetGridCoordsFromWorld(Vector3 worldPosition)
+    {
+        int x = Mathf.FloorToInt(worldPosition.x);
+        int z = Mathf.FloorToInt(worldPosition.z);
 
-    //         Mesh mesh = new Mesh
-    //         {
-    //             vertices = verts,
-    //             triangles = tris,
-    //             normals = normals,
-    //             uv = uv
-    //         };
-
-    //         _meshFilter.mesh = mesh;
-    //     }
+        return new Vector2Int(x, z);
+    }
 }
